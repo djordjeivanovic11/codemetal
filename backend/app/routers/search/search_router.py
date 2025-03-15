@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from pipelines.tpms.DS import TPMSNetwork, TPMSGraph
+from DS import TPMSNetwork, TPMSGraph
 
 # routes for searching specific cars in the network
 search_router = APIRouter(app_prefix="/api/search", tags=["Search"])
