@@ -10,3 +10,4 @@ ultralytics
 pyserial
 python-dotenv
 sqlalchemy
+networkx

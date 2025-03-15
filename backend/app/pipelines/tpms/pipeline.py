@@ -3,7 +3,7 @@ import time
 import logging
 
 from tpms_receiver import TPMSReceiver
-from data_store import DataStore
+from app.pipelines.tpms.DS.TPMSGraph import DataStore
 from decision_engine import DecisionEngine
 
 def setup_logging():
