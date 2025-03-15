@@ -14,7 +14,8 @@ from config import (
     REFRESH_TOKEN_EXPIRE_DAYS,
     RESET_TOKEN_EXPIRE_MINUTES,
 )
-from database import models, db as database
+from database import db as database
+import models
 
 # Security setup
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
