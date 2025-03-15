@@ -1,6 +1,8 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from database import db
+import models
 
 app = FastAPI(title="LANTERN API", version="1.0.0")
 
@@ -16,6 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+db.Base.metadata.create_all(bind=db.engine)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

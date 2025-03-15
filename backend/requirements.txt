@@ -1,10 +1,12 @@
 fastapi~=0.115.8
 uvicorn~=0.34.0
 passlib[bcrypt]
-fastapi[all]     
-pyjwt
+fastapi[all]
+python-jose[cryptography]
 opencv-python
 numpy
 easyocr
 ultralytics
 pyserial
+python-dotenv
+sqlalchemy
