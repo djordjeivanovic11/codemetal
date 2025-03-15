@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, UUID, Float
+import uuid
 from sqlalchemy.sql import func
 from database import db
 
@@ -14,3 +15,15 @@ class User(db.Base):
     role_id = Column(Integer, default=2, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+class Detection(db.Base):
+    __tablename__ = "detections"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    timestamp = Column(DateTime, nullable=False)
+    tpms_id = Column(String, nullable=False)
+    tpms_model = Column(String, nullable=False)
+    car_model = Column(String, nullable=False)
+    location = Column(String, nullable=False)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
