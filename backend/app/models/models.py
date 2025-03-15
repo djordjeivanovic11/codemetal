@@ -27,3 +27,21 @@ class Detection(db.Base):
     location = Column(String, nullable=False)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
+
+
+class TPMSNode(db.Base):
+    __tablename__ = "tpms_nodes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_id = Column(String, nullable=False)
+    location_name = Column(String, nullable=False)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+
+class TPMSNetwork(db.Base):
+    __tablename__ = "tpms_network"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    node_id = Column(Integer, nullable=False)
+    parent_node_id = Column(Integer, nullable=True)
+    connection_type = Column(String, nullable=False)
