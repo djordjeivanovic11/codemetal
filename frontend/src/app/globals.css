@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #c6c2c2;
+  --foreground: #171717;
+  --primary: #c1ff72;
+  --secondary: #00796b;
+  --accent: #ff9072;
+  --typography: #333333;
+  --offwhite: #f7f7f7;
+  --dark: #1a1a1a;
+  --muted: #666666;
+  --font-sans: "Orbitron", sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --primary: #c1ff72;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-mono);
+}
+
+a {
+  transition: color 0.2s ease-in-out;
+}
+
+a:hover {
+  color: var(--primary);
+}
