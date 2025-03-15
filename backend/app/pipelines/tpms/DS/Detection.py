@@ -10,6 +10,7 @@ class Detection:
                  location: str, 
                  latitude: float, 
                  longitude: float, 
+                 signal_strength: float,
                  id: uuid.UUID = None):
         """
         Initialize a Detection instance.
@@ -22,6 +23,8 @@ class Detection:
             location (str): The location name.
             latitude (float): The latitude coordinate.
             longitude (float): The longitude coordinate.
+            battery (float): battery of node at time of detection
+            signal_strength (float): strength of signal of this detect
             id (uuid.UUID, optional): Unique identifier; generated if not provided.
         """
         self.id = id if id is not None else uuid.uuid4()
@@ -32,6 +35,7 @@ class Detection:
         self.location = location
         self.latitude = latitude
         self.longitude = longitude
+        self.signal_strength = signal_strength
 
     # Dictionary-like access methods:
     def __getitem__(self, key):
@@ -52,7 +56,7 @@ class Detection:
             raise KeyError(f"{key} is not a valid attribute.")
 
     def keys(self):
-        return ['id', 'timestamp', 'tpms_id', 'tpms_model', 'car_model', 'location', 'latitude', 'longitude']
+        return ['id', 'timestamp', 'tpms_id', 'tpms_model', 'car_model', 'location', 'latitude', 'longitude', 'signal_strength']
 
     def values(self):
         return [getattr(self, key) for key in self.keys()]
