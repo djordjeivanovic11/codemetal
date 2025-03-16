@@ -1,21 +1,21 @@
 import React, { useState } from "react";
 import { VehicleSearchResult } from "@/components/UI/Dashboard/ControlPanel/Options/SearchVehicles";
+import { useHighlightedNodes } from "@/components/UI/Dashboard/Map/Markers/Context/HighlightedNodesContext";
+import { useRouter } from "next/navigation";
 
 interface VehicleSearchResultsProps {
-  results: VehicleSearchResult[];
+  results?: VehicleSearchResult[];
   onClose?: () => void;
 }
 
-const VehicleSearchResults: React.FC<VehicleSearchResultsProps> = ({ results, onClose }) => {
-  // Pagination state
+const VehicleSearchResults: React.FC<VehicleSearchResultsProps> = ({ results = [], onClose }) => {
   const pageSize = 10;
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.ceil(results.length / pageSize);
+  const displayedResults = results.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const displayedResults = results.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  const { setHighlightedNodes } = useHighlightedNodes();
+  const router = useRouter();
 
   const handleDownloadCSV = () => {
     const headers = [
@@ -55,17 +55,28 @@ const VehicleSearchResults: React.FC<VehicleSearchResultsProps> = ({ results, on
   };
 
   const handleVisualizeOnMap = () => {
-    console.log("Visualize on Map:", results);
-    alert("Map visualization coming soon!");
+    // Create an array of highlighted node objects with coordinates
+    const highlightedNodesData = results.map(r => ({
+      id: r.tpms_id,
+      position: { lat: r.latitude, lng: r.longitude },
+    }));
+    // Update context
+    setHighlightedNodes(highlightedNodesData);
+    console.log("Highlighted Node Data:", highlightedNodesData);
+    // Close the modal
+    if (onClose) onClose();
+    // Delay navigation slightly to allow the modal to close before routing
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 200); // delay in milliseconds
   };
 
   return (
     <div className="w-full h-full p-4 bg-[#1a1a1a] rounded-md shadow-md relative">
-      {/* Close Icon */}
       {onClose && (
         <button 
           onClick={onClose} 
-          className="absolute top-2 right-2 text-white text-2xl font-bold"
+          className="absolute top-2 right-2 text-white text-2xl font-bold hover:underline"
           title="Close Results"
         >
           &times;
@@ -87,9 +98,7 @@ const VehicleSearchResults: React.FC<VehicleSearchResultsProps> = ({ results, on
           <tbody>
             {displayedResults.map((result, index) => (
               <tr key={index}>
-                <td className="border p-2">
-                  {new Date(result.timestamp).toLocaleString()}
-                </td>
+                <td className="border p-2">{new Date(result.timestamp).toLocaleString()}</td>
                 <td className="border p-2">{result.tpms_id}</td>
                 <td className="border p-2">{result.tpms_model}</td>
                 <td className="border p-2">{result.car_model}</td>
@@ -101,10 +110,9 @@ const VehicleSearchResults: React.FC<VehicleSearchResultsProps> = ({ results, on
         </table>
       </div>
 
-      {/* Pagination controls */}
       <div className="flex items-center justify-center mt-4">
         <button 
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
           className="text-green-400 hover:underline disabled:text-gray-500 mr-4"
         >
@@ -114,7 +122,7 @@ const VehicleSearchResults: React.FC<VehicleSearchResultsProps> = ({ results, on
           Page {currentPage} of {totalPages || 1}
         </span>
         <button 
-          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
           disabled={currentPage === totalPages || totalPages === 0}
           className="text-green-400 hover:underline disabled:text-gray-500 ml-4"
         >
@@ -122,7 +130,6 @@ const VehicleSearchResults: React.FC<VehicleSearchResultsProps> = ({ results, on
         </button>
       </div>
 
-      {/* Action Buttons */}
       <div className="mt-4 flex justify-between">
         <button
           onClick={handleDownloadCSV}

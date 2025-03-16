@@ -5,6 +5,7 @@ import VehicleFilters from "@/components/UI/Dashboard/ControlPanel/Options/Vehic
 import SensorNetwork from "@/components/UI/Dashboard/ControlPanel/Options/SensorNetwork";
 import AlertsNotifications from "@/components/UI/Dashboard/ControlPanel/Options/AlertNotifications";
 import DescriptionSearch from "@/components/UI/Dashboard/ControlPanel/Options/DescriptionSearch";
+import DetectionsUpload from "@/components/UI/Dashboard/ControlPanel/Options/DetectionsUpload";
 
 const ControlPanel: React.FC = () => {
   return (
@@ -16,6 +17,7 @@ const ControlPanel: React.FC = () => {
         <SensorNetwork />
         <AlertsNotifications />
         <DescriptionSearch />
+        <DetectionsUpload />
       </div>
       {/* Option to change application */}
       <div className="mt-6 pt-4 border-t border-gray-700">
