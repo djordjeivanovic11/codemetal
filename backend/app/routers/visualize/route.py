@@ -1,4 +1,5 @@
 from fastapi import APIRouter, File, UploadFile, Depends, HTTPException
+from typing import List
 from sqlalchemy.orm import Session
 from typing import Optional
 import pandas as pd
@@ -96,5 +97,22 @@ def create_network(
         "tire_detected_by_id": tire_detected_by_id,
         "tire_detected_by_model": tire_detected_by_model,
         "node_path": node_path,
+        "path_node_coordinates": coordinates
+    }
+
+# get the coordinates of the path
+@visualize_router.get("/path/coordinates", response_model=dict)
+def get_path_coordinates(
+    node_path: List[int],
+    db: Session = Depends(db.get_db)
+):
+    detection_graph = TPMSNetwork()
+    coordinates = []
+    for node in node_path:
+        detection_graph.add_node(node)
+        coord = detection_graph.get_node_coordinates(node)
+        coordinates.append(coord)
+
+    return {
         "path_node_coordinates": coordinates
     }

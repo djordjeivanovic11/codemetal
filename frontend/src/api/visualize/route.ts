@@ -125,3 +125,22 @@ export async function createNetwork(
     throw error;
   }
 }
+// get the coordinates from a node path 
+
+export async function getCoordinatesFromNodePath(nodePath: number[]): Promise<Coordinate[]> {
+  try {
+    const response = await axios.get<{ path_node_coordinates: Coordinate[] }>(
+      `${BASE_URL}/api/visualize/path/coordinates`,
+      {
+        params: { node_path: nodePath }
+      }
+    );
+    return response.data.path_node_coordinates;
+  } catch (error: unknown) {
+    console.error("Error getting coordinates from node path:", error);
+    throw error;
+  }
+}
+
+
+

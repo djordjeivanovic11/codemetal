@@ -7,19 +7,24 @@ class TPMSGraph:
     def __init__(self, df):
         """
         Initialize with a DataFrame containing TPMS readings.
-        
-        Expected columns:
-          - timestamp
-          - tpms_id
-          - tpms_model
-          - car_model
-          - location
-          - latitude
-          - longitude
+        Expected columns: timestamp, tpms_id, tpms_model, car_model, location, latitude, longitude
         """
+        # Work on a copy of the dataframe
         self.df = df.copy()
-        # Remove the format argument to allow for both cases (with and without fractional seconds)
-        self.df['timestamp'] = pd.to_datetime(self.df['timestamp'], infer_datetime_format=True)
+        
+        # Convert timestamp to datetime if it's not already
+        if not pd.api.types.is_datetime64_any_dtype(self.df['timestamp']):
+            try:
+                self.df['timestamp'] = pd.to_datetime(self.df['timestamp'], format='%Y-%m-%dT%H:%M:%S')
+            except ValueError:
+                try:
+                    self.df['timestamp'] = pd.to_datetime(self.df['timestamp'], format='%Y-%m-%dT%H:%M:%S.%f')
+                except ValueError:
+                    # Fall back to a flexible conversion
+                    self.df['timestamp'] = pd.to_datetime(self.df['timestamp'], errors='coerce')
+        
+        # Sort the DataFrame by timestamp
+        self.df = self.df.sort_values('timestamp')
         self.graph = None
         self.vehicle_groups = None
 
@@ -219,74 +224,3 @@ class TPMSGraph:
             total_weight = internal_weight + external_weight
             confidence_scores[i] = internal_weight / total_weight if total_weight > 0 else 0
         return confidence_scores
-
-    # def calculate_confidence_scores(self):
-    #     """
-    #     Calculate enhanced confidence scores for each vehicle group using multiple factors:
-    #     - Density: How completely connected the group is
-    #     - Connection Strength: How strong the internal connections are
-    #     - Isolation: How isolated the group is from other nodes
-        
-    #     Returns:
-    #     - A dictionary mapping the group index to its confidence score (0-100).
-    #     """
-    #     if self.graph is None or self.vehicle_groups is None:
-    #         print("Graph or vehicle groups not available. Make sure to run build_graph() and find_vehicle_groups() first.")
-    #         return None
-        
-    #     confidence_scores = {}
-    #     groups = [group for group, _ in self.vehicle_groups]
-        
-    #     for i, group in enumerate(groups):
-    #         # Verify group contains valid nodes
-    #         valid_nodes = [node for node in group if node in self.graph]
-            
-    #         if len(valid_nodes) < 2:
-    #             confidence_scores[i] = 0
-    #             continue
-            
-    #         # Create a subgraph for this group
-    #         subgraph = self.graph.subgraph(valid_nodes)
-            
-    #         # Sum of weights within the group (internal connections)
-    #         internal_weight_sum = sum(data['weight'] for _, _, data in subgraph.edges(data=True))
-            
-    #         # Calculate density (completeness of connections)
-    #         n = len(valid_nodes)
-    #         possible_edges = n * (n - 1) / 2
-    #         actual_edges = subgraph.number_of_edges()
-    #         density = actual_edges / possible_edges if possible_edges > 0 else 0
-            
-    #         # Calculate average edge weight (strength of connections)
-    #         avg_edge_weight = internal_weight_sum / actual_edges if actual_edges > 0 else 0
-            
-    #         # Calculate external connections
-    #         external_weight_sum = 0
-    #         for node in valid_nodes:
-    #             for neighbor in self.graph.neighbors(node):
-    #                 if neighbor not in valid_nodes:
-    #                     external_weight_sum += self.graph[node][neighbor]['weight']
-            
-    #         # Calculate isolation ratio (how isolated is this group from others)
-    #         # Higher ratio = more isolated = better
-    #         total_weight = internal_weight_sum + external_weight_sum
-    #         isolation_ratio = internal_weight_sum / total_weight if total_weight > 0 else 0
-            
-    #         # Calculate overall confidence score (0-100)
-    #         # Weight the factors based on importance
-    #         density_factor = 0.4     # How completely connected the group is
-    #         strength_factor = 0.3    # How strong the connections are
-    #         isolation_factor = 0.3   # How isolated from other nodes
-            
-    #         # Normalize avg_edge_weight to 0-1 scale (assuming weight > 10 is very strong)
-    #         normalized_weight = min(1.0, avg_edge_weight / 10)
-            
-    #         confidence = (
-    #             density * density_factor +
-    #             normalized_weight * strength_factor +
-    #             isolation_ratio * isolation_factor
-    #         ) * 100
-            
-    #         confidence_scores[i] = round(confidence, 1)
-        
-    #     return confidence_scores
