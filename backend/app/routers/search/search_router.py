@@ -77,3 +77,34 @@ def search_by_model_and_id(
             detail="No detections found for the given model and id."
         )
     return {"detections": [serialize_detection(det) for det in detections]}
+
+@search_router.get("/ids/summary", response_model=Dict[str, Any])
+def search_ids_summary(
+    # Use alias "ids[]" to capture parameters like ids[]=value
+    ids: List[str] = Query(..., alias="ids[]", min_items=1, max_items=4),
+    db: Session = Depends(db.get_db)
+) -> Dict[str, Any]:
+    """
+    Search detections by tpms_id values and return only a summary of fields:
+    timestamp, location, latitude, and longitude.
+    Example URL: /api/search/ids/summary?ids[]=123&ids[]=456
+    """
+    # Trim whitespace from each ID.
+    trimmed_ids = [id.strip() for id in ids]
+    detections = db.query(Detection).filter(Detection.tpms_id.in_(trimmed_ids)).all()
+    if not detections:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No detections found for the provided IDs."
+        )
+    # Return only the desired fields.
+    summary = [
+        {
+            "timestamp": det.timestamp,
+            "location": det.location,
+            "latitude": det.latitude,
+            "longitude": det.longitude,
+        }
+        for det in detections
+    ]
+    return {"detections": summary}

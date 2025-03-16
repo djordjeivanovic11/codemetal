@@ -1,37 +1,29 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useState, useContext, ReactNode } from "react";
+import { VehicleSearchResult } from "@/components/UI/Dashboard/ControlPanel/Options/SearchVehicles";
 
-interface VehicleResult {
-  timestamp: string;
-  tpms_id: string;
-  tpms_model: string;
-  car_model: string;
-  location: string;
-  latitude: number;
-  longitude: number;
-  signal_strength: string;
+interface SearchResultsContextProps {
+  searchResults: VehicleSearchResult[];
+  results?: VehicleSearchResult[];
+  setResults?: (results: VehicleSearchResult[]) => void;
+  setSearchResults: (results: VehicleSearchResult[]) => void;
+
 }
 
-interface VehicleResultsContextProps {
-  vehicleResults: VehicleResult[];
-  setVehicleResults: (results: VehicleResult[]) => void;
-}
+const SearchResultsContext = createContext<SearchResultsContextProps | undefined>(undefined);
 
-const VehicleResultsContext = createContext<VehicleResultsContextProps | undefined>(undefined);
-
-export const VehicleResultsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [vehicleResults, setVehicleResults] = useState<VehicleResult[]>([]);
-
+export const SearchResultsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [searchResults, setSearchResults] = useState<VehicleSearchResult[]>([]);
   return (
-    <VehicleResultsContext.Provider value={{ vehicleResults, setVehicleResults }}>
+    <SearchResultsContext.Provider value={{ searchResults, setSearchResults }}>
       {children}
-    </VehicleResultsContext.Provider>
+    </SearchResultsContext.Provider>
   );
 };
 
-export const useVehicleResults = (): VehicleResultsContextProps => {
-  const context = useContext(VehicleResultsContext);
+export const useSearchResults = () => {
+  const context = useContext(SearchResultsContext);
   if (!context) {
-    throw new Error("useVehicleResults must be used within a VehicleResultsProvider");
+    throw new Error("useSearchResults must be used within a SearchResultsProvider");
   }
   return context;
 };

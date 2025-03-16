@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import VehicleSearch, { VehicleSearchResult } from "@/components/UI/Dashboard/ControlPanel/Options/SearchVehicles"; 
 import VehicleSearchResults from "@/components/UI/Dashboard/SearchResults";
 import ResultsDisplay from "@/components/UI/Dashboard/ResultsDisplay";
-import { VehicleResultsProvider } from "@/components/Context/ResultContext";
 import { GraphResponse, NetworkResponse } from "@/api/visualize/route";
 
 const VehicleSearchContainer: React.FC = () => {
@@ -16,15 +15,10 @@ const VehicleSearchContainer: React.FC = () => {
   const handleSearchResults = (data: VehicleSearchResult[]) => {
     setResults(data);
     setShowResults(true);
-    // Optionally, trigger the algorithm here and update the state:
-    // fetchAlgorithmResults(data).then(({ graph, network }) => {
-    //   setGraphResponse(graph);
-    //   setNetworkResponse(network);
-    // });
   };
 
   return (
-    <VehicleResultsProvider>
+    <>
       <VehicleSearch onSearchResults={handleSearchResults} />
       {showResults && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
@@ -50,7 +44,7 @@ const VehicleSearchContainer: React.FC = () => {
           </div>
         </div>
       )}
-    </VehicleResultsProvider>
+    </>
   );
 };
 

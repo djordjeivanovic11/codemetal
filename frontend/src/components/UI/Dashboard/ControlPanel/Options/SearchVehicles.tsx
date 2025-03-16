@@ -4,6 +4,7 @@ import {
   searchByIds,
   searchByModel,
   searchByModelAndId,
+  searchIdsSummary,
   Detection,
   DetectionsResponse,
 } from "@/api/search/route";
@@ -24,6 +25,7 @@ const VehicleSearch: React.FC<VehicleSearchProps> = ({ onSearchResults }) => {
   const [sensorModel, setSensorModel] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // The standard search button might update local state to display results.
   const [results, setResults] = useState<VehicleSearchResult[]>([]);
 
   // Update a specific tire ID field.
@@ -38,12 +40,10 @@ const VehicleSearch: React.FC<VehicleSearchProps> = ({ onSearchResults }) => {
     setResults([]);
     setLoading(true);
 
-    // License plate is logged only.
     if (licensePlate.trim() !== "") {
       console.log(`License Plate provided: ${licensePlate}`);
     }
 
-    // Filter out empty tire ID inputs.
     const validTireIds = tireIds.filter((id) => id.trim() !== "");
     console.log(`Valid tire IDs: ${validTireIds.join(", ")}`);
 
@@ -51,7 +51,7 @@ const VehicleSearch: React.FC<VehicleSearchProps> = ({ onSearchResults }) => {
       let searchResults: Detection[] = [];
 
       if (sensorModel && validTireIds.length > 0) {
-        // Use searchByModelAndId for each tire ID.
+        console.log(results);
         console.log(
           `Using searchByModelAndId with sensor model "${sensorModel}" and tire IDs: ${validTireIds.join(
             ", "
@@ -64,13 +64,11 @@ const VehicleSearch: React.FC<VehicleSearchProps> = ({ onSearchResults }) => {
           searchResults = [...searchResults, ...response.detections];
         }
       } else if (sensorModel) {
-        // Only sensor model provided.
         console.log(`Using searchByModel with sensor model "${sensorModel}"`);
         const response: DetectionsResponse = await searchByModel(sensorModel);
         console.log(`Found ${response.detections.length} detections for sensor model "${sensorModel}"`);
         searchResults = response.detections;
       } else if (validTireIds.length > 0) {
-        // Only tire IDs provided.
         console.log(`Using searchByIds with tire IDs: ${validTireIds.join(", ")}`);
         const response: DetectionsResponse = await searchByIds(validTireIds);
         console.log(`Found ${response.detections.length} detections for tire IDs`);
@@ -94,6 +92,45 @@ const VehicleSearch: React.FC<VehicleSearchProps> = ({ onSearchResults }) => {
     }
   };
 
+  // The "Search and Visualize" button now uses the summary search, stores the results in localStorage,
+  // and then reloads the page nicely.
+  const handleSearchAndVisualize = async () => {
+    setError("");
+    setLoading(true);
+    localStorage.removeItem("vehicleSearchResults"); // Clear previous results
+
+    const validTireIds = tireIds.filter((id) => id.trim() !== "");
+    if (validTireIds.length === 0) {
+      setError("Please provide at least one tire ID for search and visualize.");
+      setLoading(false);
+      return;
+    }
+    try {
+      console.log(`Using searchIdsSummary with tire IDs: ${validTireIds.join(", ")}`);
+      const response: DetectionsResponse = await searchIdsSummary(validTireIds);
+      console.log(`Found ${response.detections.length} summary detections for tire IDs`);
+      
+      // Save the results in localStorage for later use.
+      localStorage.setItem(
+        "vehicleSearchResults",
+        JSON.stringify(response.detections)
+      );
+      
+      // Optionally, call onSearchResults if needed:
+      // if (onSearchResults) {
+      //   onSearchResults(response.detections as VehicleSearchResult[]);
+      // }
+      
+      // Reload the page nicely.
+      window.location.reload();
+    } catch (err: unknown) {
+      console.error("Error during search and visualize:", err);
+      setError("An error occurred during the search. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <CollapsibleSection title="Search Vehicle">
       <div className="space-y-4">
@@ -108,7 +145,6 @@ const VehicleSearch: React.FC<VehicleSearchProps> = ({ onSearchResults }) => {
           />
         </div>
 
-        {/* Four separate tire ID fields */}
         <div className="space-y-2">
           <label className="block text-gray-300 text-sm mb-1">Tire IDs</label>
           <div className="flex flex-col space-y-2">
@@ -140,6 +176,8 @@ const VehicleSearch: React.FC<VehicleSearchProps> = ({ onSearchResults }) => {
         </div>
 
         {error && <p className="text-red-500 text-sm">{error}</p>}
+        
+        {/* Standard Search Button */}
         <button
           onClick={handleSearch}
           disabled={loading}
@@ -148,8 +186,14 @@ const VehicleSearch: React.FC<VehicleSearchProps> = ({ onSearchResults }) => {
           {loading ? "Searching..." : "Search"}
         </button>
 
-        {/* Display search results */}
-        console.log(`Found ${results.length} result(s).`)
+        {/* Search and Visualize Button */}
+        <button
+          onClick={handleSearchAndVisualize}
+          disabled={loading}
+          className="w-full bg-[#c1ff72] text-black font-bold py-2 rounded-md hover:bg-[#d1ff7f]"
+        >
+          Search and Visualize
+        </button>
       </div>
     </CollapsibleSection>
   );

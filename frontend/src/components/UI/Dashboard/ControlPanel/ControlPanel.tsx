@@ -6,7 +6,7 @@ import SensorNetwork from "@/components/UI/Dashboard/ControlPanel/Options/Sensor
 import AlertsNotifications from "@/components/UI/Dashboard/ControlPanel/Options/AlertNotifications";
 import DescriptionSearch from "@/components/UI/Dashboard/ControlPanel/Options/DescriptionSearch";
 import DetectionsUpload from "@/components/UI/Dashboard/ControlPanel/Options/DetectionsUpload";
-import GetLiveButton from "@/components/UI/Dashboard/ControlPanel/Options/GetLive";
+import GetLiveButton from "@/components/UI/Dashboard/ControlPanel/Options/GetLiveAndShow";
 
 const ControlPanel: React.FC = () => {
   return (

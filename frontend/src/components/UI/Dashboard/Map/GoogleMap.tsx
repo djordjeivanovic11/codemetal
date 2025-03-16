@@ -4,7 +4,7 @@ import VehicleMarker from "@/components/UI/Dashboard/Map/Markers/VehicleMarker";
 import LanternMarker from "@/components/UI/Dashboard/Map/Markers/LanternMarker";
 import { lanternNodes as positions } from "@/data/positions";
 import MapControls from "@/components/UI/Dashboard/Map/MapControls";
-import { useVehicleTracking, VehiclePosition } from "@/hooks/useVehicleTracking";
+import { Detection } from "@/api/search/route";
 
 // Extend MapCameraChangedEvent to include the map property.
 interface ExtendedMapCameraChangedEvent extends MapCameraChangedEvent {
@@ -19,13 +19,15 @@ interface ExtendedMapCameraChangedEvent extends MapCameraChangedEvent {
 }
 
 const EnterpriseVehicleTrackingMap: React.FC = () => {
-  const initialPos: VehiclePosition = {
+  // Fixed vehicle position.
+  const fixedPosition = {
     lat: 42.3601,
     lng: -71.0589,
     timestamp: Date.now(),
   };
 
-  const { position } = useVehicleTracking(initialPos);
+  // State for local search results.
+  const [searchResults, setSearchResults] = useState<Detection[]>([]);
 
   // Consolidated state for map controls.
   const [controls, setControls] = useState({
@@ -48,24 +50,61 @@ const EnterpriseVehicleTrackingMap: React.FC = () => {
   // Auto-center the map when following the vehicle.
   useEffect(() => {
     if (controls.followVehicle && mapInstance) {
-      mapInstance.panTo({ lat: position.lat, lng: position.lng });
+      mapInstance.panTo({ lat: fixedPosition.lat, lng: fixedPosition.lng });
     }
-  }, [position, controls.followVehicle, mapInstance]);
+  }, [controls.followVehicle, mapInstance]);
+
+  // Function to load search results from local storage.
+  const loadSearchResults = () => {
+    const data = localStorage.getItem("vehicleSearchResults");
+    if (data) {
+      try {
+        const parsedResults = JSON.parse(data) as Detection[];
+        setSearchResults(parsedResults);
+      } catch (error) {
+        console.error("Error parsing vehicle search results from localStorage:", error);
+      }
+    }
+  };
+
+  // Load search results on mount.
+  useEffect(() => {
+    loadSearchResults();
+  }, []);
+
+  // Poll local storage every minute for updated search results.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadSearchResults();
+    }, 6000); // 60000ms = 1 minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}>
       <Map
-        defaultCenter={{ lat: initialPos.lat, lng: initialPos.lng }}
+        defaultCenter={{ lat: fixedPosition.lat, lng: fixedPosition.lng }}
         defaultZoom={controls.zoom}
         tilt={controls.tilt}
         heading={controls.heading}
         onCameraChanged={handleCameraChanged}
         mapId={process.env.NEXT_PUBLIC_MAP_ID}
       >
-        <VehicleMarker position={position} />
+        {/* Render the fixed vehicle marker */}
+        <VehicleMarker position={fixedPosition} />
+        {/* Render lantern nodes */}
         {positions.map((pos) => (
-          <LanternMarker key={pos.id} position={{ lat: pos.lat, lng: pos.lng }} />
+          <LanternMarker key={pos.id} nodeId={pos.id} position={{ lat: pos.lat, lng: pos.lng }} />
         ))}
+        {/* Render vehicle markers if local storage has data */}
+        {searchResults.length > 0 &&
+          searchResults.map((det, index) => (
+            <VehicleMarker
+              key={`search-${index}`}
+              position={{ lat: det.latitude, lng: det.longitude, timestamp: Date.now() }}
+            />
+          ))}
       </Map>
 
       <MapControls
