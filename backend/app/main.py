@@ -13,6 +13,7 @@ from routers.detection import detection_router
 from routers.network import network_router
 from routers.search import search_router
 from routers.visualize.route import visualize_router
+from routers.live.live_router import router as live_router
 
 app = FastAPI(title="LANTERN API", version="1.0.0")
 
@@ -33,6 +34,7 @@ app.include_router(detection_router.router)
 app.include_router(network_router.network_router)
 app.include_router(search_router.search_router)
 app.include_router(visualize_router)
+app.include_router(live_router)
 
 # Create database tables
 db.Base.metadata.create_all(bind=db.engine)

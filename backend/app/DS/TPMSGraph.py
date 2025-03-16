@@ -18,7 +18,8 @@ class TPMSGraph:
           - longitude
         """
         self.df = df.copy()
-        self.df['timestamp'] = pd.to_datetime(self.df['timestamp'])
+        # Remove the format argument to allow for both cases (with and without fractional seconds)
+        self.df['timestamp'] = pd.to_datetime(self.df['timestamp'], infer_datetime_format=True)
         self.graph = None
         self.vehicle_groups = None
 

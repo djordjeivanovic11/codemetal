@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { GraphResponse, NetworkResponse } from "@/api/visualize/route";
 
 interface ResultsDisplayProps {
@@ -12,22 +12,33 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
   networkResponse,
   onVisualize,
 }) => {
+  // Log entire responses on mount/update
+  useEffect(() => {
+    console.log("Full Graph Response:", graphResponse);
+    console.log("Full Network Response:", networkResponse);
+  }, [graphResponse, networkResponse]);
+
   // Destructure graph response details.
   const { graph: graphData, vehicle_groups, confidence_scores } = graphResponse;
-  const graphNodes = graphData.nodes;
+  console.log("Destructured graphData:", graphData);
+  console.log("Destructured vehicle_groups:", vehicle_groups);
+  console.log("Destructured confidence_scores:", confidence_scores);
 
   // Destructure network response details.
   const { tire_detected_by_id, tire_detected_by_model, node_path, path_node_coordinates } = networkResponse;
+  console.log("Destructured tire_detected_by_id:", tire_detected_by_id);
+  console.log("Destructured tire_detected_by_model:", tire_detected_by_model);
+  console.log("Destructured node_path:", node_path);
+  console.log("Destructured path_node_coordinates:", path_node_coordinates);
 
   const handleVisualizeClick = () => {
     const combinedResult = {
       graph: graphResponse,
       network: networkResponse,
     };
+    console.log("Visualize button clicked. Combined result:", combinedResult);
     if (onVisualize) {
       onVisualize(combinedResult);
-    } else {
-      console.log("Combined result:", combinedResult);
     }
   };
 
@@ -41,27 +52,31 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
           <div className="mb-4">
             <h4 className="font-semibold">Nodes</h4>
             <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse border border-gray-600">
-                <thead>
-                  <tr className="bg-gray-700">
-                    <th className="px-3 py-2 border border-gray-600">ID</th>
-                    <th className="px-3 py-2 border border-gray-600">Properties</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {graphNodes.map((node) => (
-                    <tr key={node.id}>
-                      <td className="px-3 py-2 border border-gray-600">{node.id}</td>
-                      <td className="px-3 py-2 border border-gray-600">
-                        {JSON.stringify(node)}
-                      </td>
+              {graphData && graphData.nodes && graphData.nodes.length > 0 ? (
+                <table className="min-w-full border-collapse border border-gray-600">
+                  <thead>
+                    <tr className="bg-gray-700">
+                      <th className="px-3 py-2 border border-gray-600">ID</th>
+                      <th className="px-3 py-2 border border-gray-600">Properties</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {graphData.nodes.map((node) => (
+                      <tr key={node.id}>
+                        <td className="px-3 py-2 border border-gray-600">{node.id}</td>
+                        <td className="px-3 py-2 border border-gray-600">
+                          {JSON.stringify(node)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p>No nodes found in graphData.</p>
+              )}
             </div>
           </div>
-          {vehicle_groups && vehicle_groups.length > 0 && (
+          {vehicle_groups && vehicle_groups.length > 0 ? (
             <div className="mb-4">
               <h4 className="font-semibold">Vehicle Groups</h4>
               <ul className="list-disc ml-5">
@@ -72,8 +87,10 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 ))}
               </ul>
             </div>
+          ) : (
+            <p>No vehicle groups found.</p>
           )}
-          {confidence_scores && Object.keys(confidence_scores).length > 0 && (
+          {confidence_scores && Object.keys(confidence_scores).length > 0 ? (
             <div className="mb-4">
               <h4 className="font-semibold">Confidence Scores</h4>
               <ul className="list-disc ml-5">
@@ -84,31 +101,39 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 ))}
               </ul>
             </div>
+          ) : (
+            <p>No confidence scores available.</p>
           )}
         </div>
 
         {/* Network Data Section */}
         <div>
           <h3 className="text-xl font-semibold mb-2">Network Data</h3>
-          {tire_detected_by_id && tire_detected_by_id.length > 0 && (
+          {tire_detected_by_id && tire_detected_by_id.length > 0 ? (
             <div className="mb-4">
               <h4 className="font-semibold">Tire Detected By ID</h4>
               <p>{tire_detected_by_id.join(", ")}</p>
             </div>
+          ) : (
+            <p>No tire detected by ID data.</p>
           )}
-          {tire_detected_by_model && tire_detected_by_model.length > 0 && (
+          {tire_detected_by_model && tire_detected_by_model.length > 0 ? (
             <div className="mb-4">
               <h4 className="font-semibold">Tire Detected By Model</h4>
               <p>{tire_detected_by_model.join(", ")}</p>
             </div>
+          ) : (
+            <p>No tire detected by model data.</p>
           )}
-          {node_path && node_path.length > 0 && (
+          {node_path && node_path.length > 0 ? (
             <div className="mb-4">
               <h4 className="font-semibold">Node Path</h4>
               <p>{node_path.join(" -> ")}</p>
             </div>
+          ) : (
+            <p>No node path available.</p>
           )}
-          {path_node_coordinates && path_node_coordinates.length > 0 && (
+          {path_node_coordinates && path_node_coordinates.length > 0 ? (
             <div className="mb-4">
               <h4 className="font-semibold">Path Node Coordinates</h4>
               <div className="overflow-x-auto">
@@ -130,6 +155,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
                 </table>
               </div>
             </div>
+          ) : (
+            <p>No path node coordinates available.</p>
           )}
         </div>
       </div>
