@@ -24,22 +24,65 @@ def parse_timestamp(timestamp_str):
     except:
         raise ValueError(f"Invalid timestamp format: {timestamp_str}")
 
-def process_csv_data(df: pd.DataFrame) -> Dict[str, Any]:
+def process_vehicle_groups(df: pd.DataFrame, time_threshold: int = 5, weight_threshold: int = 2) -> Dict[str, Any]:
     """
-    Process the uploaded CSV data and run graph algorithms
+    Process TPMS data to identify vehicle groups using co-occurrence graph algorithm.
+    This function expects the data to be already filtered for a specific car model or sensor ID if needed.
     
     Parameters:
         df: Pandas DataFrame containing the TPMS readings
+        time_threshold: Time threshold in seconds for co-occurrence
+        weight_threshold: Weight threshold for edge pruning
         
     Returns:
-        Dictionary with processing results
+        Dictionary with vehicle grouping results
+    """
+    # Ensure required columns exist
+    required_columns = ['timestamp', 'tpms_id', 'location']
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    
+    if missing_columns:
+        raise ValueError(f"DataFrame is missing required columns: {', '.join(missing_columns)}")
+    
+    # Convert timestamp to datetime if it's not already
+    if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
+        df['timestamp'] = df['timestamp'].apply(parse_timestamp)
+    
+    # Build co-occurrence graph
+    G = build_cooccurrence_graph(df, time_threshold)
+    
+    # Find vehicle groups
+    vehicle_groups = find_vehicle_groups(G, weight_threshold)
+    
+    # Calculate confidence scores
+    confidence_scores = calculate_confidence_scores(G, vehicle_groups)
+    
+    return {
+        "graph": G,
+        "vehicle_groups": vehicle_groups,
+        "confidence_scores": confidence_scores
+    }
+
+
+def build_vehicle_network(df: pd.DataFrame, vehicle_groups: List[List[str]], confidence_scores: Dict[int, float]) -> Dict[str, Any]:
+    """
+    Build a network of vehicle movements using the identified vehicle groups.
+    This function creates a TPMSNetwork to track vehicle paths and generates summary statistics.
+    
+    Parameters:
+        df: Pandas DataFrame containing the TPMS readings
+        vehicle_groups: List of lists, where each inner list contains TPMS IDs for a vehicle
+        confidence_scores: Dictionary mapping group index to confidence score
+        
+    Returns:
+        Dictionary with network, vehicle data, and statistics
     """
     # Ensure required columns exist
     required_columns = ['timestamp', 'tpms_id', 'location', 'latitude', 'longitude']
     missing_columns = [col for col in required_columns if col not in df.columns]
     
     if missing_columns:
-        raise ValueError(f"CSV is missing required columns: {', '.join(missing_columns)}")
+        raise ValueError(f"DataFrame is missing required columns: {', '.join(missing_columns)}")
     
     # Convert timestamp to datetime if it's not already
     if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
@@ -53,19 +96,6 @@ def process_csv_data(df: pd.DataFrame) -> Dict[str, Any]:
     if 'signal_strength' not in df.columns:
         df['signal_strength'] = 0.0
     
-    # Run TPMS grouping algorithm
-    time_threshold = 5  # seconds
-    weight_threshold = 2
-    
-    # Build co-occurrence graph
-    G = build_cooccurrence_graph(df, time_threshold)
-    
-    # Find vehicle groups
-    vehicle_groups = find_vehicle_groups(G, weight_threshold)
-    
-    # Calculate confidence scores
-    confidence_scores = calculate_confidence_scores(G, vehicle_groups)
-    
     # Create TPMSNetwork to track movement paths
     network = TPMSNetwork()
     
@@ -76,6 +106,10 @@ def process_csv_data(df: pd.DataFrame) -> Dict[str, Any]:
         
         # Filter data for this vehicle's sensors
         vehicle_data = df[df['tpms_id'].isin(group)]
+        
+        # Skip if no data for this group
+        if vehicle_data.empty:
+            continue
         
         # Group by approximate timestamp (rounded to nearest 5 seconds)
         vehicle_data['timestamp_rounded'] = vehicle_data['timestamp'].dt.round('5S')
@@ -127,6 +161,10 @@ def process_csv_data(df: pd.DataFrame) -> Dict[str, Any]:
         # Get sample readings for this group
         group_readings = df[df['tpms_id'].isin(group)].sort_values('timestamp')
         
+        # Skip if no readings
+        if group_readings.empty:
+            continue
+        
         # Extract model information if available
         tpms_models = group_readings['tpms_model'].unique().tolist() if 'tpms_model' in group_readings else []
         car_models = group_readings['car_model'].unique().tolist() if 'car_model' in group_readings else []
@@ -156,30 +194,78 @@ def process_csv_data(df: pd.DataFrame) -> Dict[str, Any]:
         "network": network.to_dict()
     }
 
-def background_process_csv(file_content: bytes, filename: str, job_id: str):
-    """Background task to process CSV file"""
-    try:
-        # Parse CSV
-        df = pd.read_csv(io.StringIO(file_content.decode('utf-8')))
+
+# Example of how to use these functions in sequence:
+def process_csv_data(df: pd.DataFrame) -> Dict[str, Any]:
+    """
+    Process the uploaded CSV data and run graph algorithms
+    
+    Parameters:
+        df: Pandas DataFrame containing the TPMS readings
         
-        # Process data
-        results = process_csv_data(df)
+    Returns:
+        Dictionary with processing results
+    """
+    # First, process the data to identify vehicle groups
+    grouping_results = process_vehicle_groups(df)
+    
+    # Then, build the network using the identified groups
+    network_results = build_vehicle_network(
+        df, 
+        grouping_results["vehicle_groups"], 
+        grouping_results["confidence_scores"]
+    )
+    
+    # You can also include the graph in the results if needed
+    network_results["graph"] = grouping_results["graph"]
+    
+    return network_results
+
+
+# Example of how to filter data before grouping:
+def process_filtered_data(df: pd.DataFrame, filter_model: str = None, filter_tpms_id: str = None) -> Dict[str, Any]:
+    """
+    Filter data for a specific model or TPMS ID, then process it
+    
+    Parameters:
+        df: Pandas DataFrame containing the TPMS readings
+        filter_model: Optional model name to filter by
+        filter_tpms_id: Optional TPMS ID to filter by
         
-        # Store results
-        processed_results[job_id] = {
-            "status": "completed",
-            "filename": filename,
-            "timestamp": datetime.now().isoformat(),
-            "results": results
-        }
-    except Exception as e:
-        # Store error
-        processed_results[job_id] = {
-            "status": "failed",
-            "filename": filename,
-            "timestamp": datetime.now().isoformat(),
-            "error": str(e)
-        }
+    Returns:
+        Dictionary with processing results
+    """
+    # Apply filters if provided
+    filtered_df = df.copy()
+    
+    if filter_model and 'tpms_model' in df.columns:
+        filtered_df = filtered_df[filtered_df['tpms_model'] == filter_model]
+    
+    if filter_tpms_id:
+        # If filtering by a specific TPMS ID, we might want to include other sensors 
+        # from the same vehicle, but we don't know which ones yet
+        # For now, just filter by the ID
+        filtered_df = filtered_df[filtered_df['tpms_id'] == filter_tpms_id]
+    
+    # Check if we have enough data after filtering
+    if len(filtered_df) < 10:
+        raise ValueError("Not enough data after filtering")
+    
+    # Process the filtered data
+    grouping_results = process_vehicle_groups(filtered_df)
+    
+    # Build network using the original dataframe but only for the identified groups
+    # This way we include all the data for the identified vehicles
+    network_results = build_vehicle_network(
+        df,  # Use full dataset
+        grouping_results["vehicle_groups"], 
+        grouping_results["confidence_scores"]
+    )
+    
+    # Include the graph in the results
+    network_results["graph"] = grouping_results["graph"]
+    
+    return network_results
 
 @upload_router.post("/csv")
 async def upload_csv(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
