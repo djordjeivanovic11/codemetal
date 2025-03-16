@@ -1,4 +1,6 @@
-import Readings, Detection
+from DS import Readings
+from DS.Detection import Detection
+from typing import List, Dict, Any
 
 class TPMSNode:
     def __init__(self, name: str, latitude: float, longitude: float, location: str, battery: float, signal_strength: float):

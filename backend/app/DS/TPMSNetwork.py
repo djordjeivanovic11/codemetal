@@ -14,7 +14,6 @@ import networkx as nx
 from datetime import datetime
 from typing import List, Tuple, Dict, Optional, Any
 
-
 class TPMSNetwork:
     def __init__(self):
         """
@@ -23,8 +22,8 @@ class TPMSNetwork:
         """
         self.graph: nx.DiGraph = nx.DiGraph()
         self.next_node_id: int = 0
-        # Add indexes for faster lookups
-        self.tire_index: Dict[str, List[int]] = {}  # Maps tire_id to node_ids
+        # Add indexes for faster lookups: Maps tire_id to a list of node IDs.
+        self.tire_index: Dict[str, List[int]] = {}
 
     def add_event(self, 
                   timestamp: datetime, 
@@ -109,13 +108,13 @@ class TPMSNetwork:
         candidate: Optional[int] = None
         candidate_time: Optional[datetime] = None
 
-        # Get potential matching nodes using the index
+        # Get potential matching nodes using the index.
         potential_nodes = set()
         for tid in tire_ids:
             if tid in self.tire_index:
                 potential_nodes.update(self.tire_index[tid])
         
-        # Find the most recent matching node
+        # Find the most recent matching node.
         for n in potential_nodes:
             data = self.graph.nodes[n]
             event_time = data.get('timestamp')
@@ -128,7 +127,7 @@ class TPMSNetwork:
                     candidate = n
                     candidate_time = event_time
         
-        # Check time threshold
+        # Check time threshold.
         if candidate_time is not None:
             time_diff = current_timestamp - candidate_time
             if time_diff.total_seconds() > time_threshold_seconds:
@@ -212,7 +211,7 @@ class TPMSNetwork:
         nodes = self.search_by_tire(tire_id)
         if not nodes:
             return []
-        return self.get_path_for_node(nodes[-1])  # Use most recent detection
+        return self.get_path_for_node(nodes[-1])  # Use the most recent detection
 
     def get_path_coordinates(self, path: List[int]) -> List[Tuple[float, float]]:
         """
@@ -271,16 +270,16 @@ class TPMSNetwork:
         """
         results = []
         
-        # Use tire index if only searching by tire_ids
+        # Use tire index if only searching by tire_ids.
         if set(query.keys()) == {'tire_ids'}:
             return self.search_by_tire_ids(query['tire_ids'])
             
-        # Otherwise, perform full search
+        # Otherwise, perform full search.
         for n, data in self.graph.nodes(data=True):
             match = True
             for key, value in query.items():
                 if key == 'tire_ids':
-                    # value is expected to be a list of tire ids
+                    # value is expected to be a list of tire ids.
                     if not any(tid in data.get('tire_ids', []) for tid in value):
                         match = False
                         break

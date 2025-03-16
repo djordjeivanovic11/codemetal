@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 import json
-from pipelines.tpms.DS import TPMSNetwork, TPMSGraph, Detection
+from DS import TPMSNetwork, TPMSGraph, Detection
 
 # routes for network management
 

@@ -37,11 +37,5 @@ class TPMSNode(db.Base):
     location_name = Column(String, nullable=False)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
-
-class TPMSNetwork(db.Base):
-    __tablename__ = "tpms_network"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    node_id = Column(Integer, nullable=False)
-    parent_node_id = Column(Integer, nullable=True)
-    connection_type = Column(String, nullable=False)
+    battery = Column(Float, nullable=False)
+    signal_strength = Column(Float, nullable=False)

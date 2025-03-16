@@ -15,11 +15,9 @@ const MapControls: React.FC<MapControlsProps> = ({
   followVehicle,
   tilt,
   heading,
-  zoom,
   onFollowToggle,
   onTiltChange,
   onHeadingChange,
-  onZoomChange,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
 
@@ -28,8 +26,6 @@ const MapControls: React.FC<MapControlsProps> = ({
     onTiltChange(Number(e.target.value));
   const handleHeading = (e: ChangeEvent<HTMLInputElement>) =>
     onHeadingChange(Number(e.target.value));
-  const handleZoom = (e: ChangeEvent<HTMLInputElement>) =>
-    onZoomChange(Number(e.target.value));
 
   return (
     <div className="absolute top-10 right-10 p-6 bg-[#1a1a1a] rounded-xl shadow-2xl z-50 min-w-[260px] text-white font-sans">
@@ -80,19 +76,6 @@ const MapControls: React.FC<MapControlsProps> = ({
               value={heading}
               onChange={handleHeading}
               aria-label="Heading"
-              className="w-full accent-[#c1ff72] transition-all"
-            />
-          </div>
-          <div className="flex flex-col text-sm">
-            <label className="mb-1">Zoom: {zoom}</label>
-            <input
-              type="range"
-              min={10}
-              max={22}
-              step={1}
-              value={zoom}
-              onChange={handleZoom}
-              aria-label="Zoom"
               className="w-full accent-[#c1ff72] transition-all"
             />
           </div>

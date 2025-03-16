@@ -1,4 +1,3 @@
-// positions.ts
 export interface LanternNode {
     id: string;
     lat: number;
