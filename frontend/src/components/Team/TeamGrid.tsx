@@ -3,7 +3,7 @@ import MemberCard from "./MemberCard";
 
 const teamMembers = [
   {
-    image: "/images/team/jensen.webp",
+    image: "/images/team/anton.jpg",
     name: "Anton Njavro",
     expertise: "Hardware Engineer",
     linkedin: "https://www.linkedin.com/in/anton-njavro",
@@ -11,7 +11,7 @@ const teamMembers = [
     resume: "/resumes/anton.pdf",
   },
   {
-    image: "/images/team/jobs.webp",
+    image: "/images/team/ryan.jpg",
     name: "Ryan Nguyen",
     expertise: "AI Engineer",
     linkedin: "https://www.linkedin.com/in/ryan-nguyen",
@@ -19,7 +19,7 @@ const teamMembers = [
     resume: "/resumes/ryan.pdf",
   },
   {
-    image: "/images/team/musk.webp",
+    image: "/images/team/david.jpg",
     name: "David Neary",
     expertise: "Product Manager",
     linkedin: "https://www.linkedin.com/in/david-neary",
@@ -27,7 +27,7 @@ const teamMembers = [
     resume: "/resumes/david.pdf",
   },
   {
-    image: "/images/team/ive.webp",
+    image: "/images/team/djordje.jpg",
     name: "Djordje Ivanovic",
     expertise: "Frontend Developer",
     linkedin: "https://www.linkedin.com/in/djordje-ivanovic",

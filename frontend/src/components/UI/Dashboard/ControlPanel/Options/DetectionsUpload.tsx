@@ -1,5 +1,6 @@
 import React, { useState, ChangeEvent } from "react";
 import CollapsibleSection from "@/components/UI/Dashboard/ControlPanel/CollapsibleSection";
+import { uploadCsv } from "@/api/upload/route";
 
 const DetectionsUpload: React.FC = () => {
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -18,15 +19,9 @@ const DetectionsUpload: React.FC = () => {
     }
     setUploadStatus("Uploading...");
     try {
-      const formData = new FormData();
-      formData.append("file", csvFile);
-
-      const response = await fetch("/api/detections/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await response.json();
-      setUploadStatus(data.message || "Upload successful.");
+      // Call the uploadCsv function that uses axios to post the CSV file.
+      const response = await uploadCsv(csvFile);
+      setUploadStatus(response.message || "Upload successful.");
       // Optionally, trigger further actions with the uploaded data here.
     } catch (err) {
       console.error("Error uploading CSV:", err);

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { VehicleSearchResult } from "@/components/UI/Dashboard/ControlPanel/Options/SearchVehicles";
-import { useHighlightedNodes } from "@/components/UI/Dashboard/Map/Markers/Context/HighlightedNodesContext";
-import { useRouter } from "next/navigation";
+import ResultsDisplay from "@/components/UI/Dashboard/ResultsDisplay";
+import { createGraph, createNetwork, GraphResponse, NetworkResponse } from "@/api/visualize/route";
 
 interface VehicleSearchResultsProps {
   results?: VehicleSearchResult[];
@@ -14,19 +14,23 @@ const VehicleSearchResults: React.FC<VehicleSearchResultsProps> = ({ results = [
   const totalPages = Math.ceil(results.length / pageSize);
   const displayedResults = results.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const { setHighlightedNodes } = useHighlightedNodes();
-  const router = useRouter();
+  // State to hold the algorithm results from the API calls.
+  const [algorithmResults, setAlgorithmResults] = useState<{
+    graphResponse: GraphResponse;
+    networkResponse: NetworkResponse;
+  } | null>(null);
 
   const handleDownloadCSV = () => {
+    // Use lowercase header names to match backend expectations.
     const headers = [
-      "Timestamp",
-      "TPMS ID",
-      "Sensor Model",
-      "Car Model",
-      "Location",
-      "Latitude",
-      "Longitude",
-      "Signal Strength",
+      "timestamp",
+      "tpms_id",
+      "tpms_model",
+      "car_model",
+      "location",
+      "latitude",
+      "longitude",
+      "signal_strength",
     ];
     const csvRows = [
       headers.join(","),
@@ -54,21 +58,63 @@ const VehicleSearchResults: React.FC<VehicleSearchResultsProps> = ({ results = [
     document.body.removeChild(a);
   };
 
-  const handleVisualizeOnMap = () => {
-    // Create an array of highlighted node objects with coordinates
-    const highlightedNodesData = results.map(r => ({
-      id: r.tpms_id,
-      position: { lat: r.latitude, lng: r.longitude },
-    }));
-    // Update context
-    setHighlightedNodes(highlightedNodesData);
-    console.log("Highlighted Node Data:", highlightedNodesData);
-    // Close the modal
-    if (onClose) onClose();
-    // Delay navigation slightly to allow the modal to close before routing
-    setTimeout(() => {
-      router.push("/dashboard");
-    }, 200); // delay in milliseconds
+  const handleVisualizeOnMap = async () => {
+    if (results.length === 0) {
+      console.error("No search results available to generate CSV.");
+      return;
+    }
+
+    // Create CSV data with headers expected by the backend.
+    const headers = [
+      "timestamp",
+      "tpms_id",
+      "tpms_model",
+      "car_model",
+      "location",
+      "latitude",
+      "longitude",
+      "signal_strength",
+    ];
+    const csvRows = [
+      headers.join(","),
+      ...results.map(result =>
+        [
+          result.timestamp,
+          result.tpms_id,
+          result.tpms_model,
+          result.car_model,
+          result.location,
+          result.latitude,
+          result.longitude,
+          result.signal_strength,
+        ].join(",")
+      ),
+    ].join("\n");
+
+    console.log("CSV Data:", csvRows);
+
+    // Create a File object from the CSV data.
+    const blob = new Blob([csvRows], { type: "text/csv" });
+    const file = new File([blob], "vehicle_search_results.csv", { type: "text/csv" });
+
+    // Derive search parameters from results.
+    const searchByIds = results.map(r => r.tpms_id);
+    const searchByModel = results[0]?.tpms_model; // use sensor model from the first result
+    const buildNodePath = results[0]?.tpms_id; // use the first result's tpms_id for building node path
+
+    try {
+      // Call API endpoints to get graph and network data.
+      const graphResponse = await createGraph(file);
+      const networkResponse = await createNetwork(file, searchByIds, searchByModel, buildNodePath);
+
+      console.log("Graph Response:", graphResponse);
+      console.log("Network Response:", networkResponse);
+
+      // Save the responses in state to display them immediately.
+      setAlgorithmResults({ graphResponse, networkResponse });
+    } catch (error) {
+      console.error("Error generating visualization:", error);
+    }
   };
 
   return (
@@ -141,9 +187,19 @@ const VehicleSearchResults: React.FC<VehicleSearchResultsProps> = ({ results = [
           onClick={handleVisualizeOnMap}
           className="bg-[#c1ff72] text-black font-bold py-2 px-4 rounded-md hover:bg-[#d1ff7f]"
         >
-          Visualize on Map
+          Run Algorithm
         </button>
       </div>
+
+      {/* Display algorithm results immediately below */}
+      {algorithmResults && (
+        <div className="mt-6">
+          <ResultsDisplay 
+            graphResponse={algorithmResults.graphResponse} 
+            networkResponse={algorithmResults.networkResponse} 
+          />
+        </div>
+      )}
     </div>
   );
 };

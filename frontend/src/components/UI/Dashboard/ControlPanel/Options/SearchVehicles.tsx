@@ -1,15 +1,14 @@
-// src/Options/VehicleSearch.tsx
 import React, { useState } from "react";
 import CollapsibleSection from "@/components/UI/Dashboard/ControlPanel/CollapsibleSection";
+import {
+  searchByIds,
+  searchByModel,
+  searchByModelAndId,
+  Detection,
+  DetectionsResponse,
+} from "@/api/search/route";
 
-export interface VehicleSearchResult {
-  timestamp: string;
-  tpms_id: string;
-  tpms_model: string;
-  car_model: string;
-  location: string;
-  latitude: number;
-  longitude: number;
+export interface VehicleSearchResult extends Detection {
   signal_strength: number;
   video_url?: string;
 }
@@ -20,13 +19,14 @@ interface VehicleSearchProps {
 
 const VehicleSearch: React.FC<VehicleSearchProps> = ({ onSearchResults }) => {
   const [licensePlate, setLicensePlate] = useState("");
-  // Create state for four tire IDs; first is required, others are optional.
+  // Four tire ID fields; first is required, others optional.
   const [tireIds, setTireIds] = useState<string[]>(["", "", "", ""]);
   const [sensorModel, setSensorModel] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [results, setResults] = useState<VehicleSearchResult[]>([]);
 
-  // Update a specific tire field.
+  // Update a specific tire ID field.
   const handleTireIdChange = (index: number, value: string) => {
     const newTireIds = [...tireIds];
     newTireIds[index] = value;
@@ -34,57 +34,71 @@ const VehicleSearch: React.FC<VehicleSearchProps> = ({ onSearchResults }) => {
   };
 
   const handleSearch = async () => {
-    setLoading(true);
     setError("");
+    setResults([]);
+    setLoading(true);
 
-    // Validate that the first tire ID is provided.
-    if (!tireIds[0].trim()) {
-      setError("Tire ID 1 is required.");
-      setLoading(false);
-      return;
+    // License plate is logged only.
+    if (licensePlate.trim() !== "") {
+      console.log(`License Plate provided: ${licensePlate}`);
     }
 
-    // For dummy data, we simulate a delay and then return a dummy list.
-    setTimeout(() => {
-      const dummyResults: VehicleSearchResult[] = [
-        {
-          timestamp: new Date().toISOString(),
-          tpms_id: "TPMS_001",
-          tpms_model: "ModelX",
-          car_model: "Sedan",
-          location: "Downtown",
-          latitude: 42.387414,
-          longitude: -71.099972,
-          signal_strength: 90,
-          video_url: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-        },
-        {
-          timestamp: new Date().toISOString(),
-          tpms_id: "TPMS_002",
-          tpms_model: "ModelY",
-          car_model: "SUV",
-          location: "Midtown",
-          latitude: 42.388000,
-          longitude: -71.100000,
-          signal_strength: 85,
-          video_url: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-        },
-      ];
-      if (onSearchResults) {
-        onSearchResults(dummyResults);
+    // Filter out empty tire ID inputs.
+    const validTireIds = tireIds.filter((id) => id.trim() !== "");
+    console.log(`Valid tire IDs: ${validTireIds.join(", ")}`);
+
+    try {
+      let searchResults: Detection[] = [];
+
+      if (sensorModel && validTireIds.length > 0) {
+        // Use searchByModelAndId for each tire ID.
+        console.log(
+          `Using searchByModelAndId with sensor model "${sensorModel}" and tire IDs: ${validTireIds.join(
+            ", "
+          )}`
+        );
+        for (const id of validTireIds) {
+          console.log(`Searching for sensor model "${sensorModel}" and tire ID "${id}"`);
+          const response: DetectionsResponse = await searchByModelAndId(sensorModel, id);
+          console.log(`Found ${response.detections.length} detections for tire ID "${id}"`);
+          searchResults = [...searchResults, ...response.detections];
+        }
+      } else if (sensorModel) {
+        // Only sensor model provided.
+        console.log(`Using searchByModel with sensor model "${sensorModel}"`);
+        const response: DetectionsResponse = await searchByModel(sensorModel);
+        console.log(`Found ${response.detections.length} detections for sensor model "${sensorModel}"`);
+        searchResults = response.detections;
+      } else if (validTireIds.length > 0) {
+        // Only tire IDs provided.
+        console.log(`Using searchByIds with tire IDs: ${validTireIds.join(", ")}`);
+        const response: DetectionsResponse = await searchByIds(validTireIds);
+        console.log(`Found ${response.detections.length} detections for tire IDs`);
+        searchResults = response.detections;
+      } else {
+        console.log("No valid search criteria provided.");
+        setError("Please provide at least a sensor model or a tire ID to search.");
+        return;
       }
-      console.log("Search Results:", dummyResults);
+
+      setResults(searchResults as VehicleSearchResult[]);
+      if (onSearchResults) {
+        onSearchResults(searchResults as VehicleSearchResult[]);
+      }
+      console.log(`Search completed with ${searchResults.length} result(s).`);
+    } catch (err: unknown) {
+      console.log(`Error during search: ${err}`);
+      setError("An error occurred during the search. Please try again.");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
     <CollapsibleSection title="Search Vehicle">
       <div className="space-y-4">
         <div>
-          <label className="block text-gray-300 text-sm mb-1">
-            License Plate
-          </label>
+          <label className="block text-gray-300 text-sm mb-1">License Plate</label>
           <input
             type="text"
             placeholder="Enter license plate (e.g., ABC-123)"
@@ -98,49 +112,24 @@ const VehicleSearch: React.FC<VehicleSearchProps> = ({ onSearchResults }) => {
         <div className="space-y-2">
           <label className="block text-gray-300 text-sm mb-1">Tire IDs</label>
           <div className="flex flex-col space-y-2">
-            <div>
-              <input
-                type="text"
-                placeholder="Tire ID 1 (required)"
-                value={tireIds[0]}
-                onChange={(e) => handleTireIdChange(0, e.target.value)}
-                className="w-full p-2 bg-[#1a1a1a] border border-gray-700 rounded-md text-white"
-              />
-            </div>
-            <div>
-              <input
-                type="text"
-                placeholder="Tire ID 2 (optional)"
-                value={tireIds[1]}
-                onChange={(e) => handleTireIdChange(1, e.target.value)}
-                className="w-full p-2 bg-[#1a1a1a] border border-gray-700 rounded-md text-white"
-              />
-            </div>
-            <div>
-              <input
-                type="text"
-                placeholder="Tire ID 3 (optional)"
-                value={tireIds[2]}
-                onChange={(e) => handleTireIdChange(2, e.target.value)}
-                className="w-full p-2 bg-[#1a1a1a] border border-gray-700 rounded-md text-white"
-              />
-            </div>
-            <div>
-              <input
-                type="text"
-                placeholder="Tire ID 4 (optional)"
-                value={tireIds[3]}
-                onChange={(e) => handleTireIdChange(3, e.target.value)}
-                className="w-full p-2 bg-[#1a1a1a] border border-gray-700 rounded-md text-white"
-              />
-            </div>
+            {tireIds.map((tireId, index) => (
+              <div key={index}>
+                <input
+                  type="text"
+                  placeholder={
+                    index === 0 ? "Tire ID 1 (required)" : `Tire ID ${index + 1} (optional)`
+                  }
+                  value={tireId}
+                  onChange={(e) => handleTireIdChange(index, e.target.value)}
+                  className="w-full p-2 bg-[#1a1a1a] border border-gray-700 rounded-md text-white"
+                />
+              </div>
+            ))}
           </div>
         </div>
 
         <div>
-          <label className="block text-gray-300 text-sm mb-1">
-            Sensor Model
-          </label>
+          <label className="block text-gray-300 text-sm mb-1">Sensor Model</label>
           <input
             type="text"
             placeholder="Enter sensor model (e.g., ModelX)"
@@ -158,6 +147,9 @@ const VehicleSearch: React.FC<VehicleSearchProps> = ({ onSearchResults }) => {
         >
           {loading ? "Searching..." : "Search"}
         </button>
+
+        {/* Display search results */}
+        console.log(`Found ${results.length} result(s).`)
       </div>
     </CollapsibleSection>
   );

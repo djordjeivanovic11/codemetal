@@ -28,7 +28,6 @@ class Detection(db.Base):
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
 
-
 class TPMSNode(db.Base):
     __tablename__ = "tpms_nodes"
 

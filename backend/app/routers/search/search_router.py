@@ -1,35 +1,79 @@
-from fastapi import APIRouter
-from DS import TPMSNetwork, TPMSGraph
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+from typing import List, Dict, Any
+from database import db
+from models.models import Detection
 
-# routes for searching specific cars in the network
-search_router = APIRouter(app_prefix="/api/search", tags=["Search"])
+search_router = APIRouter(prefix="/api/search", tags=["Search"])
 
-# search endpoint
-@search_router.get("/")
-def search():
-    return {"message": "Search endpoint"}
+def serialize_detection(detection: Detection) -> Dict[str, Any]:
+    """
+    Convert a Detection model instance into a dictionary.
+    """
+    data = detection.__dict__.copy()
+    data.pop("_sa_instance_state", None)
+    return data
 
-#search by id or a list of ids 1 min to 4 max ids)
-@search_router.get("/ids/{ids}")
-def search_by_ids(ids: list[int]):
-    return {"message": f"Search by ids: {ids}"}
- 
-# search the network by a specific model
-@search_router.get("/model/{model_name}")
-def search_by_model(model_name: str):
-    return {"message": f"Search by model: {model_name}"}
+@search_router.get("/ids", response_model=Dict[str, Any])
+def search_by_ids(
+    # Use alias "ids[]" to capture parameters like ids[]=value
+    ids: List[str] = Query(..., alias="ids[]", min_items=1, max_items=4),
+    db: Session = Depends(db.get_db)
+) -> Dict[str, Any]:
+    """
+    Search detections by tpms_id values. Accepts between 1 and 4 ids.
+    Example URL: /api/search/ids?ids[]=123&ids[]=456
+    """
+    # Trim whitespace from each ID.
+    trimmed_ids = [id.strip() for id in ids]
+    detections = db.query(Detection).filter(Detection.tpms_id.in_(trimmed_ids)).all()
+    if not detections:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No detections found for the provided IDs."
+        )
+    return {"detections": [serialize_detection(det) for det in detections]}
 
-# search the network by a specific model and id
-@search_router.get("/model/{model_name}/id/{id}")
-def search_by_model_and_id(model_name: str, id: int):
-    return {"message": f"Search by model: {model_name} and id: {id}"}
+@search_router.get("/model/{model_name}", response_model=Dict[str, Any])
+def search_by_model(
+    model_name: str,
+    db: Session = Depends(db.get_db)
+) -> Dict[str, Any]:
+    """
+    Search detections by sensor model.
+    Example URL: /api/search/model/ABC123
+    """
+    # Trim any extra whitespace from the model name.
+    model_name = model_name.strip()
+    detections = db.query(Detection).filter(
+        Detection.tpms_model.ilike(f"%{model_name}%")
+    ).all()
+    if not detections:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No detections found for the given model."
+        )
+    return {"detections": [serialize_detection(det) for det in detections]}
 
-# search in a specific time window
-@search_router.get("/time/{start_time}/{end_time}")
-def search_by_time(start_time: str, end_time: str):
-    return {"message": f"Search by time from {start_time} to {end_time}"}
-
-# search by a radius around a specific location
-@search_router.get("/location/{latitude}/{longitude}/{radius}")
-def search_by_location(latitude: float, longitude: float, radius: float):
-    return {"message": f"Search by location: ({latitude}, {longitude}) with radius {radius}"}
+@search_router.get("/model/{model_name}/id/{tpms_id}", response_model=Dict[str, Any])
+def search_by_model_and_id(
+    model_name: str,
+    tpms_id: str,
+    db: Session = Depends(db.get_db)
+) -> Dict[str, Any]:
+    """
+    Search detections by sensor model and sensor id.
+    Example URL: /api/search/model/ABC123/id/123
+    """
+    model_name = model_name.strip()
+    tpms_id = tpms_id.strip()
+    detections = db.query(Detection).filter(
+        Detection.tpms_model.ilike(f"%{model_name}%"),
+        Detection.tpms_id == tpms_id
+    ).all()
+    if not detections:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No detections found for the given model and id."
+        )
+    return {"detections": [serialize_detection(det) for det in detections]}

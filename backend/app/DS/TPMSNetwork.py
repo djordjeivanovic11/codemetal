@@ -212,6 +212,26 @@ class TPMSNetwork:
         if not nodes:
             return []
         return self.get_path_for_node(nodes[-1])  # Use the most recent detection
+    
+    def search_by_tire_model(self, tire_model: str) -> List[int]:
+        """
+        Search for event nodes that match the given tire model.
+        This method assumes that each event node has a 'tire_model' attribute.
+        If the attribute is missing, the node will not be included in the results.
+
+        Parameters:
+            tire_model (str): The tire model to search for.
+
+        Returns:
+            List[int]: A list of matching node IDs sorted chronologically.
+        """
+        results = []
+        for n, data in self.graph.nodes(data=True):
+            if data.get("tire_model") == tire_model:
+                results.append(n)
+        results.sort(key=lambda n: self.graph.nodes[n]["timestamp"])
+        return results
+
 
     def get_path_coordinates(self, path: List[int]) -> List[Tuple[float, float]]:
         """
